@@ -30,6 +30,15 @@ def add_product():
         db.session.rollback()
         return jsonify({"message": str(f'error in {e}')})
 
+@app.route('/api/product/delete/<int:product_id>', methods=['DELETE'])
+def delete_product(product_id):
+    product = Product.query.get(product_id)
+    if product:
+        db.session.delete(product)
+        db.session.commit()
+        return jsonify({"message": "Product deleted succesfully"})
+    return jsonify({"message": "Product not found"},404)
+
 #Definindo rota raíz
 @app.route('/')
 def hello_word():

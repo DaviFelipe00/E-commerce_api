@@ -1,11 +1,20 @@
 from flask import Flask, request, jsonify #Importa o FLask
 from flask_sqlalchemy import SQLAlchemy #Importa a biblioteca que cuidara do banco de dados, permitindo troca de DB para escalar
+from flask_cors import CORS
+from flask_login import UserMixin
+
 
 app= Flask(__name__) #Instancia o flask
 
 #Cria o banco de dados
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///ecommerce.db'
 db = SQLAlchemy(app)
+
+#Classe de usuário, com nome e senha
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key = True)
+    user_name = db.Column(db.String(80), nullable= False)
+    password = db.Column(db.String(80), nullable = False)
 
 #Classe responsável para os itens do banco de dados
 class Product(db.Model):
@@ -42,7 +51,7 @@ def delete_product(product_id):
     return jsonify({"message": "Product not found"},404)
 
 #Método de retorno para dados dos produtos
-@app.route('/api/product/<int:product_id>', methods=['Get'])
+@app.route('/api/products/<int:product_id>', methods=['Get'])
 def product_description(product_id):
     product = Product.query.get(product_id)
     if product:
@@ -54,6 +63,7 @@ def product_description(product_id):
         })
     return jsonify({"message": "Product not found"},404)
 
+#Rota de update
 @app.route('/api/product/update/<int:product_id>', methods=['PUT'])
 def update_product(product_id):
     product = Product.query.get(product_id)
@@ -73,12 +83,25 @@ def update_product(product_id):
     db.session.commit()
     return jsonify({"message": "Product updated succesfully"})
 
-#Definindo rota raíz
-@app.route('/')
-def hello_word():
-    return 'Hello Word!'
+#Rota para mostrar todos os produtos do banco de dados
+@app.route('/api/products')
+def products():
+    products = Product.query.all()
+    products_list = []
+    for product in products:
+        all_product = {
+                "id": product.id,
+                "name": product.name,
+                "price": product.price,
+                "description": product.description
+            }
+        products_list.append(all_product)
+    return jsonify(products_list)
+
+#Caso necessário fazer alteração no banco de dados sem rota use o Witch app.app_context para criar um contexto no código
+
+# with app.app_context():
+    #db.create_all()
+    #db.session.commit()
     
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()  # Cria o banco/tabelas se não existirem
-    app.run(debug=True)
+app.run(debug=True)

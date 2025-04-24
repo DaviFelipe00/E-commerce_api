@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify #Importa o FLask
 from flask_sqlalchemy import SQLAlchemy #Importa a biblioteca que cuidara do banco de dados, permitindo troca de DB para escalar
 from flask_cors import CORS
-from flask_login import UserMixin, login_user, LoginManager
+from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user
 
 
 app= Flask(__name__) #Instancia o flask
@@ -28,6 +28,12 @@ class Product(db.Model):
     price = db.Column(db.Float, nullable= False)
     description = db.Column(db.Text, nullable = True)
 
+#Autenticação de usuário
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+
 #Rota de Login e autenticação de usuário
 @app.route('/login', methods= ['POST'])
 def login():
@@ -41,8 +47,16 @@ def login():
     
     return jsonify({"message": "Unauthorized. Invalid credentials"}) ,401
 
+@app.route('/logout', methods=["POST"])
+@login_required
+def logout():
+    logout_user()
+    return jsonify({"message:" "Logout succesfully"})
+    
+
 #Método para adicionar produto com Try/except, caso de algum erro de chave e valor, retornara erro de BAD REQUEST
 @app.route('/api/product/add', methods=['POST'])
+@login_required
 def add_product():
     try:
         data = request.json
@@ -64,6 +78,7 @@ def add_product():
 
 #Método para deletar um produto, uso o parametro de ID para excluir 
 @app.route('/api/product/delete/<int:product_id>', methods=['DELETE'])
+@login_required
 def delete_product(product_id):
     
     product = Product.query.get(product_id)
@@ -77,6 +92,7 @@ def delete_product(product_id):
 
 #Método de retorno para dados dos produtos
 @app.route('/api/products/<int:product_id>', methods=['Get'])
+@login_required
 def product_description(product_id):
     
     product = Product.query.get(product_id)
